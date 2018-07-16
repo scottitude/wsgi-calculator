@@ -1,3 +1,19 @@
+# -------------------------------------------------#
+# Title: calculator.py
+# Dev: Scott Luse
+# Date: 07/15/2018
+# -------------------------------------------------#
+
+import re
+import traceback
+import os.path
+from calculationdb import CalculationDB
+
+import cgitb
+cgitb.enable()
+
+DB = CalculationDB()
+
 """
 For your homework this week, you'll be creating a wsgi application of
 your own.
@@ -45,26 +61,117 @@ To submit your homework:
 def add(*args):
     """ Returns a STRING with the sum of the arguments """
 
-    # TODO: Fill sum with the correct value, based on the
-    # args provided.
-    sum = "0"
+    sum = 0
+    sum = args[0] + args[1]
+    var_test = "Hello"
 
-    return sum
+    page = """
+    <h1>Addition</h1>
+    <table>
+        <tr><th>Author</th><td>{author}</td></tr>
+        <tr><th>Publisher</th><td>%(var_test)</td></tr>
+        <tr><th>ISBN</th><td>{sum}</td></tr>
+    </table>
+    <a href="/">Back to the list</a>
+    """
+    return page
 
-# TODO: Add functions for handling more arithmetic operations.
+def multiply(*args):
+    """ Returns a STRING with the sum of the arguments """
+
+    sum = 0
+    sum = args[0] + args[1]
+
+    page = """
+    <h1>Multiplication</h1>
+    <table>
+        <tr><th>Author</th><td>{author}</td></tr>
+        <tr><th>Publisher</th><td>{publisher}</td></tr>
+        <tr><th>ISBN</th><td>{isbn}</td></tr>
+    </table>
+    <a href="/">Back to the list</a>
+    """
+    return page
+
+def subtract(*args):
+    """ Returns a STRING with the sum of the arguments """
+
+    sum = 0
+    sum = args[0] + args[1]
+
+    page = """
+    <h1>Subtraction</h1>
+    <table>
+        <tr><th>Author</th><td>{author}</td></tr>
+        <tr><th>Publisher</th><td>{publisher}</td></tr>
+        <tr><th>ISBN</th><td>{isbn}</td></tr>
+    </table>
+    <a href="/">Back to the list</a>
+    """
+    return page
+
+def divide(*args):
+    """ Returns a STRING with the sum of the arguments """
+
+    sum = 0
+    sum = args[0] + args[1]
+
+    page = """
+    <h1>Division</h1>
+    <table>
+        <tr><th>Author</th><td>{author}</td></tr>
+        <tr><th>Publisher</th><td>{publisher}</td></tr>
+        <tr><th>ISBN</th><td>{isbn}</td></tr>
+    </table>
+    <a href="/">Back to the list</a>
+    """
+    return page
+
+def home():
+    all_math = DB.names()
+    body = ['<h1>My Calculator</h1> <P>Please click on the math calculation.</P> <ul>']
+    item_template = '<li><a href="/{id}">{name}</a></li>'
+    for name in all_math:
+        body.append(item_template.format(**name))
+    body.append('</ul>')
+    return '\n'.join(body)
 
 def resolve_path(path):
-    """
-    Should return two values: a callable and an iterable of
+    func = add
+    args = ['25', '32']
+
+    return func, args
+
+def resolve_pathAAA(path):
+    '''
+    :param path: PATH_INFO from application method
+    :return two values: a callable and an iterable of
     arguments.
-    """
+    '''
 
     # TODO: Provide correct values for func and args. The
     # examples provide the correct *syntax*, but you should
     # determine the actual values of func and args using the
     # path.
-    func = add
-    args = ['25', '32']
+
+
+    calculate = {
+        '': home,
+        'add': add,
+        'multiply': multiply,
+        'subtract': subtract,
+        'divide': divide,
+    }
+
+    path = path.strip('/').split('/')
+
+    func_name = path[0]
+    args = path[1:]
+
+    try:
+        func = calculate[func_name]
+    except KeyError:
+        raise NameError
 
     return func, args
 
@@ -76,9 +183,32 @@ def application(environ, start_response):
     #
     # TODO (bonus): Add error handling for a user attempting
     # to divide by zero.
-    pass
+
+    status = "200 OK"
+    body = ""
+    headers = [("Content-type", "text/html")]
+    try:
+        path = environ.get('PATH_INFO', None)
+        if path is None:
+            raise NameError
+        func, args = resolve_path(path)
+        body = func(*args)
+        status = "200 OK"
+    except NameError:
+        status = "404 Not Found"
+        body = "<h1>Not Found</h1>"
+        print(traceback.format_exc())
+    except Exception:
+        status = "500 Internal Server Error"
+        body = "<h1>Internal Server Error</h1>"
+        print(traceback.format_exc())
+    finally:
+        headers.append(('Content-length', str(len(body))))
+        start_response(status, headers)
+        return [body.encode('utf8')]
+
 
 if __name__ == '__main__':
-    # TODO: Insert the same boilerplate wsgiref simple
-    # server creation that you used in the book database.
-    pass
+    from wsgiref.simple_server import make_server
+    srv = make_server('localhost', 8080, application)
+    srv.serve_forever()
