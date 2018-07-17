@@ -1,16 +1,12 @@
 # -------------------------------------------------#
 # Title: calculator.py
 # Dev: Scott Luse
-# Date: 07/15/2018
+# Date: 07/16/2018
 # -------------------------------------------------#
 
 import re
 import traceback
-import os.path
 from calculationdb import CalculationDB
-
-import cgitb
-cgitb.enable()
 
 DB = CalculationDB()
 
@@ -59,73 +55,33 @@ To submit your homework:
 
 
 def add(*args):
-    """ Returns a STRING with the sum of the arguments """
+    result = 0
+    result = int(args[0]) + int(args[1])
 
-    sum = 0
-    sum = args[0] + args[1]
-    var_test = "Hello"
-
-    page = """
-    <h1>Addition</h1>
-    <table>
-        <tr><th>Author</th><td>{author}</td></tr>
-        <tr><th>Publisher</th><td>%(var_test)</td></tr>
-        <tr><th>ISBN</th><td>{sum}</td></tr>
-    </table>
-    <a href="/">Back to the list</a>
-    """
-    return page
+    return str(result)
 
 def multiply(*args):
-    """ Returns a STRING with the sum of the arguments """
+    result = 0
+    result = int(args[0]) * int(args[1])
 
-    sum = 0
-    sum = args[0] + args[1]
-
-    page = """
-    <h1>Multiplication</h1>
-    <table>
-        <tr><th>Author</th><td>{author}</td></tr>
-        <tr><th>Publisher</th><td>{publisher}</td></tr>
-        <tr><th>ISBN</th><td>{isbn}</td></tr>
-    </table>
-    <a href="/">Back to the list</a>
-    """
-    return page
+    return str(result)
 
 def subtract(*args):
-    """ Returns a STRING with the sum of the arguments """
+    result = 0
+    result = int(args[0]) - int(args[1])
 
-    sum = 0
-    sum = args[0] + args[1]
-
-    page = """
-    <h1>Subtraction</h1>
-    <table>
-        <tr><th>Author</th><td>{author}</td></tr>
-        <tr><th>Publisher</th><td>{publisher}</td></tr>
-        <tr><th>ISBN</th><td>{isbn}</td></tr>
-    </table>
-    <a href="/">Back to the list</a>
-    """
-    return page
+    return str(result)
 
 def divide(*args):
-    """ Returns a STRING with the sum of the arguments """
-
-    sum = 0
-    sum = args[0] + args[1]
-
-    page = """
-    <h1>Division</h1>
-    <table>
-        <tr><th>Author</th><td>{author}</td></tr>
-        <tr><th>Publisher</th><td>{publisher}</td></tr>
-        <tr><th>ISBN</th><td>{isbn}</td></tr>
-    </table>
-    <a href="/">Back to the list</a>
-    """
-    return page
+    result = 0
+    page = ""
+    if args[1] != "0":
+        result = int(args[0]) / int(args[1])
+    else:
+    # custom ZeroDivisionError
+    # must handle this error in UI
+        result = 0
+    return str(result)
 
 def home():
     all_math = DB.names()
@@ -136,13 +92,19 @@ def home():
     body.append('</ul>')
     return '\n'.join(body)
 
+def generate_body(answer, func, *args):
+    page = """
+    <h1>{}</h1>
+    <table>
+        <tr><th>Number-1:</th><td>{}</td></tr>
+        <tr><th>Number-2</th><td>{}</td></tr>
+        <tr><th>Result:</th><td>{}</td></tr>
+    </table>
+    <a href="/">Back to the list!</a>
+    """
+    return page.format(func, args[0], args[1], answer)
+
 def resolve_path(path):
-    func = add
-    args = ['25', '32']
-
-    return func, args
-
-def resolve_pathAAA(path):
     '''
     :param path: PATH_INFO from application method
     :return two values: a callable and an iterable of
@@ -186,13 +148,18 @@ def application(environ, start_response):
 
     status = "200 OK"
     body = ""
+    answer = ""
     headers = [("Content-type", "text/html")]
     try:
         path = environ.get('PATH_INFO', None)
         if path is None:
             raise NameError
         func, args = resolve_path(path)
-        body = func(*args)
+        if len(args) == 0:
+            body = func(*args)
+        else:
+            answer = func(*args)
+            body = generate_body(answer, func, *args)
         status = "200 OK"
     except NameError:
         status = "404 Not Found"
